@@ -50,7 +50,7 @@ What stays manual:
 
 The auto-merge workflow never checks out the pull request branch.
 
-CI ([`ci-test-and-prepare-release.yaml`](../.github/workflows/ci-test-and-prepare-release.yaml)) fails unless the PR has **exactly one** of `major` / `minor` / `patch` / `no-release`. Dependabot therefore keeps `no-release` and must not also get another release-type label. `dependencies` is extra and does not count as a release type.
+CI ([`ci-test-and-prepare-release.yaml`](../.github/workflows/ci-test-and-prepare-release.yaml)) still requires **exactly one** of `major` / `minor` / `patch` / `no-release` on **human** PRs. Dependabot always keeps `no-release` from `dependabot.yml`, but GitHub also applies `major` / `minor` / `patch` when those labels already exist (they do — module releases use them). Detect therefore treats Dependabot + `no-release` as `no-release` and ignores the extra semver labels. Human PRs are unchanged. `dependencies` is extra and does not count as a release type.
 
 ## GitHub App
 
@@ -106,7 +106,10 @@ Required so auto-merge cannot skip CI:
 - **Do not** require review from Code Owners
 - Dismiss stale reviews when new commits are pushed (the workflow re-approves on `synchronize`)
 - Require status checks to pass before merging
-- Required check that always runs: `Detect pull request context` (from [CI/test and prepare release](../.github/workflows/ci-test-and-prepare-release.yaml)). GitHub Actions-only Dependabot PRs skip `validate` / `lint` / `analysis` / `plan` because they only touch `.github/`. Module PRs also run matrix checks such as `validate (s3-bucket) / validate`.
+- Required check that always runs: `CI checks` (from [CI/test and prepare release](../.github/workflows/ci-test-and-prepare-release.yaml)). It succeeds when `Detect pull request context` succeeded and `validate` / `lint` / `analysis` / `plan` are each `success` or `skipped`.
+- GitHub Actions-only Dependabot PRs skip `validate` / `lint` / `analysis` / `plan` because they only touch `.github/`. `CI checks` still passes after Detect. Module PRs must get those matrix jobs green (for example `validate (s3-bucket) / validate`).
+- Do **not** require skipped matrix names, `Comment on PR`, or `Dispatch release event`.
+- You can keep `Detect pull request context` required; `CI checks` is the one that also waits for module validate/lint/analysis/plan.
 - Require conversation resolution: **off**
 - Allow auto-merge: **on**
 - Squash merging: **on**
@@ -118,8 +121,11 @@ App install, secrets, auto-merge, squash, and branch protection are already conf
 
 ## Verify
 
-1. Minor or patch Dependabot PR with only `no-release` (plus optional `dependencies`): App approval, auto-merge queued, squash merge after `Detect pull request context` is green.
-2. Major or `semver-unknown` Dependabot PR: workflow runs, no App approval, PR stays open.
-3. Human PR: workflow job skipped (`dependabot[bot]` guard).
-4. On a Dependabot-triggered run, `Create GitHub App token` can read both secrets.
-5. A Dependabot PR that also has `minor` / `major` / `patch` will fail Detect (two release-type labels). Remove the extra release label.
+1. Minor or patch Dependabot PR with `no-release` (even if GitHub also added `minor`): App approval, extra semver labels removed, auto-merge queued, squash after `CI checks` is green.
+2. Actions-only Dependabot PR: validate/lint/analysis/plan skip; `CI checks` still green after Detect.
+3. Terraform module Dependabot PR: `CI checks` stays pending until validate/lint/analysis/plan succeed.
+4. Major or `semver-unknown` Dependabot PR: workflow runs, no App approval, PR stays open.
+5. Human PR: auto-merge job skipped; exactly one of `major` / `minor` / `patch` / `no-release` still required.
+6. On a Dependabot-triggered run, `Create GitHub App token` can read both secrets.
+
+After merging this change, set required status check **`CI checks`** on `master`. [PR #19](https://github.com/ealebed/aws-terraform-modules/pull/19) squash-merged while Detect had failed, which means Detect was not an effective merge gate.
