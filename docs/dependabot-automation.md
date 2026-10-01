@@ -45,12 +45,12 @@ What stays manual:
 ## Repository files
 
 - [`.github/workflows/dependabot-auto-merge.yml`](../.github/workflows/dependabot-auto-merge.yml) — approve + enable squash auto-merge
-- [`.github/dependabot.yml`](../.github/dependabot.yml) — terraform (weekly) and github-actions (daily); labels `no-release` and `dependencies`
+- [`.github/dependabot.yml`](../.github/dependabot.yml) — terraform (weekly) and github-actions (daily); label `no-release`
 - [`.github/CODEOWNERS`](../.github/CODEOWNERS) — review requests to `@ealebed` (not a merge requirement)
 
 The auto-merge workflow never checks out the pull request branch.
 
-CI ([`ci-test-and-prepare-release.yaml`](../.github/workflows/ci-test-and-prepare-release.yaml)) still requires **exactly one** of `major` / `minor` / `patch` / `no-release` on **human** PRs. Dependabot always keeps `no-release` from `dependabot.yml`, but GitHub also applies `major` / `minor` / `patch` when those labels already exist (they do — module releases use them). Detect therefore treats Dependabot + `no-release` as `no-release` and ignores the extra semver labels. Human PRs are unchanged. `dependencies` is extra and does not count as a release type.
+CI ([`ci-test-and-prepare-release.yaml`](../.github/workflows/ci-test-and-prepare-release.yaml)) still requires **exactly one** of `major` / `minor` / `patch` / `no-release` on **human** PRs. Dependabot always keeps `no-release` from `dependabot.yml`, but GitHub also applies `major` / `minor` / `patch` when those labels already exist (they do — module releases use them). Detect therefore treats Dependabot + `no-release` as `no-release` and ignores the extra semver labels. Human PRs are unchanged.
 
 ## GitHub App
 
